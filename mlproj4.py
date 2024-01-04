@@ -1,17 +1,221 @@
 # RESOURCES
-from mlproj4_data import *
+# RESOURCES
+import os
+import sys
+import argparse
+import random
+import time
+import copy
+
+# CONSTANTS
+ITEMS = {
+	"022S":{"val": 2, "cat": 4}, 
+	"033S":{"val": 3, "cat": 4}, 
+	"044S":{"val": 4, "cat": 4}, 
+	"055S":{"val": 5, "cat": 4}, 
+	"066S":{"val": 6, "cat": 4}, 
+	"077S":{"val": 7, "cat": 4}, 
+	"088S":{"val": 8, "cat": 4}, 
+	"099S":{"val": 9, "cat": 4}, 
+	"10TS":{"val": 10, "cat": 4}, 
+	"11JS":{"val": 11, "cat": 4}, 
+	"12QS":{"val": 12, "cat": 4}, 
+	"13KS":{"val": 13, "cat": 4}, 
+	"14AS":{"val": 14, "cat": 4},
+
+	"022H":{"val": 2, "cat": 3}, 
+	"033H":{"val": 3, "cat": 3}, 
+	"044H":{"val": 4, "cat": 3}, 
+	"055H":{"val": 5, "cat": 3}, 
+	"066H":{"val": 6, "cat": 3}, 
+	"077H":{"val": 7, "cat": 3}, 
+	"088H":{"val": 8, "cat": 3}, 
+	"099H":{"val": 9, "cat": 3}, 
+	"10TH":{"val": 10, "cat": 3}, 
+	"11JH":{"val": 11, "cat": 3}, 
+	"12QH":{"val": 12, "cat": 3}, 
+	"13KH":{"val": 13, "cat": 3}, 
+	"14AH":{"val": 14, "cat": 3},
+
+	"022D":{"val": 2, "cat": 2}, 
+	"033D":{"val": 3, "cat": 2}, 
+	"044D":{"val": 4, "cat": 2}, 
+	"055D":{"val": 5, "cat": 2}, 
+	"066D":{"val": 6, "cat": 2}, 
+	"077D":{"val": 7, "cat": 2}, 
+	"088D":{"val": 8, "cat": 2}, 
+	"099D":{"val": 9, "cat": 2}, 
+	"10TD":{"val": 10, "cat": 2}, 
+	"11JD":{"val": 11, "cat": 2}, 
+	"12QD":{"val": 12, "cat": 2}, 
+	"13KD":{"val": 13, "cat": 2}, 
+	"14AD":{"val": 14, "cat": 2},
+
+	"022C":{"val": 2, "cat": 1}, 
+	"033C":{"val": 3, "cat": 1}, 
+	"044C":{"val": 4, "cat": 1}, 
+	"055C":{"val": 5, "cat": 1}, 
+	"066C":{"val": 6, "cat": 1}, 
+	"077C":{"val": 7, "cat": 1}, 
+	"088C":{"val": 8, "cat": 1}, 
+	"099C":{"val": 9, "cat": 1}, 
+	"10TC":{"val": 10, "cat": 1}, 
+	"11JC":{"val": 11, "cat": 1}, 
+	"12QC":{"val": 12, "cat": 1}, 
+	"13KC":{"val": 13, "cat": 1}, 
+	"14AC":{"val": 14, "cat": 1},
+}
+
+ITEMS_KEYS = list(ITEMS.keys())
+
+CATEGORY = {
+	"s": 4, "h": 3, "d": 2, "c":1
+}
+
+CATEGORY_KEYS = list(CATEGORY.keys())
+
+RETURNS_JoB_9_6 = {
+	'RF': 800,
+	'SF': 50,
+	'4K': 25,
+	'FH': 9,
+	'F':  6,
+	'S':  4,
+	'3K': 3,
+	'2P': 2,
+	'JoB':1,
+}
+
+RETURNS_KEYS = list(RETURNS_JoB_9_6.keys())
+
+NUM_ITEMS = range(1,6)
+
+ALL_ITEMS = "12345"
+
+NO_ITEMS = ""
+
+STRAIGHT = [1,1,1,1]
+AL_STRAIGHT = [1,1,1,9]
+FLUSH = [0,0,0,0]
+FOUR_TO_A_STRIGHT = [1,1,1]
+FOUR_TO_A_STRIGHT2 = [1,1,9]
+FOUR_TO_A_FLUSH = [0,0,0]
+THREE_TO_A_FLUSH = [0,0]
+
+THREE_TO_RF = (
+	range(11,14),
+	range(10,13),
+	range(9,12),
+	range(8,11),
+	range(7,10),
+	range(6,9),
+	range(5,8),
+	range(4,7),
+	range(3,6),
+	range(2,5),
+	range(1,4),
+)
+
+
+QUIT = ("q", "quit")
+
+ALL = ("a", "all")
+NONE = ("n", "none")
+
+# FUNCTIONS
+def is_rf(group):
+	condition = False 
+	if group["d_cats"] == FLUSH and group["d_vals"] == STRAIGHT and group["vals"][4] == 14:
+		condition = True
+	return condition
+
+def is_sf(group):
+	condition = False 
+	if group["d_cats"] == FLUSH and group["d_vals"] in (STRAIGHT, AL_STRAIGHT):
+		condition = True
+	return condition
+
+def is_4k(group):
+	condition = False
+	if group["d_vals"].count(0) == 3 and \
+		(
+			(group["d_vals"][0] == 0 and group["d_vals"][1] == 0 and group["d_vals"][2] == 0) or 
+			(group["d_vals"][1] == 0 and group["d_vals"][2] == 0 and group["d_vals"][3] == 0)
+		):
+		condition = True
+	return condition
+
+def is_fh(group):
+	condition = False
+	if group["d_vals"].count(0) == 3 and \
+		(
+			(group["d_vals"][0] == 0 and group["d_vals"][1] == 0 and group["d_vals"][3] == 0) or 
+			(group["d_vals"][0] == 0 and group["d_vals"][2] == 0 and group["d_vals"][3] == 0)
+		):
+		condition = True
+	return condition
+
+def is_f(group):
+	condition = False 
+	if group["d_cats"] == FLUSH:
+		condition = True
+	return condition
+
+def is_s(group):
+	condition = False
+	if group["d_vals"] in (STRAIGHT, AL_STRAIGHT):
+		condition = True
+	return condition
+
+def is_3k(group):
+	condition = False
+	if group["d_vals"].count(0) == 2 and \
+		(
+			(group["d_vals"][0] == 0 and group["d_vals"][1] == 0) or 
+			(group["d_vals"][1] == 0 and group["d_vals"][2] == 0) or 
+			(group["d_vals"][2] == 0 and group["d_vals"][3] == 0)
+		):
+		condition = True
+	return condition
+
+def is_2p(group):
+	condition = False
+	if group["d_vals"].count(0) == 2:
+		condition = True
+	return condition
+
+def is_job(group):
+	condition = False 
+	if group["d_vals"].count(0) == 1:
+		index = group["d_vals"].index(0)
+		if group["vals"][index] > 10:
+			condition = True
+	return condition
+
+# SAMPLE INPUTS
+GROUP_RF =   ["10Ts", "11Js", "12Qs", "13Ks", "14As"]
+GROUP_SF =   ["022s", "033s", "044s", "055s", "066s"]
+GROUP_ALSF = ["14As", "022s", "033s", "044s", "055s"]
+GROUP_4K =   ["022s", "022h", "022d", "022c", "055d"]
+GROUP_FH =   ["022s", "022h", "022d", "055h", "055d"]
+GROUP_F =    ["022s", "033s", "044s", "055s", "077s"]
+GROUP_S =    ["022s", "033s", "044s", "055s", "066h"]
+GROUP_3K =   ["022s", "022h", "022d", "055h", "088d"]
+GROUP_2P =   ["022s", "022h", "055s", "055h", "088d"]
+GROUP_JoB =  ["11Js", "11Jh", "055s", "077h", "088d"]
 
 # MAIN CLASS
 class MLProject4(object):
 	def __init__(self, debug, alg):
 		self.debug = debug
+		self.alg = alg
 		self.shuffled_items = None
 		self.group = {
-				"items": [], "vals": [], "cats": [], 
-				"d_vals": [], "d_cats": [], 
-				"type": None, "ret": 0, "step": 0
+			"items": [], "vals": [], "cats": [], 
+			"d_vals": [], "d_cats": [], 
+			"type": None, "ret": 0, "step": 0
 		}
-		self.balance = 400
+		self.balance = 100
 		self.cost = 1
 		self.keep = None
 		self.max_ret = 0
@@ -35,29 +239,10 @@ class MLProject4(object):
 			'2P': 0,
 			'JoB':0,
 		}
-
-	def reset(self):
-		#self.keep = input("Reset:")
-		if self.keep in QUIT:
-			return
-		items = copy.deepcopy(ITEMS_KEYS)
-		random.shuffle(items)
-		self.shuffled_items = items[:10]
-		self.group["items"] = self.shuffled_items[:5]
-		self.group["items"].sort()
-		self.group["vals"] = [ITEMS[x]["val"] for x in self.group["items"]]
-		self.group["vals"].sort()
-		self.group["cats"] = [ITEMS[x]["cat"] for x in self.group["items"]]
-		self.group["cats"].sort()
-		self.group["d_vals"] =  [x - self.group["vals"][i - 1] for i, x in enumerate(self.group["vals"])][1:]
-		self.group["d_cats"] =  [x - self.group["cats"][i - 1] for i, x in enumerate(self.group["cats"])][1:]
-
-		print("\nInitial Group", self.group["items"])
-
-		self.balance -= self.cost
+		
 
 	def algorith_input(self):
-		keep = input("Algorithm Random: Keep: ")
+		keep = input("Algorithm Input: Keep: ")
 		if keep == "r":
 			keep = self.algorith_random()
 		elif keep == "s1":
@@ -163,6 +348,28 @@ class MLProject4(object):
 
 		return keep
 
+	def reset(self):
+		if self.alg == "i":
+			self.keep = input("Reset:")
+		if self.keep in QUIT:
+			return
+		items = copy.deepcopy(ITEMS_KEYS)
+		random.shuffle(items)
+		self.shuffled_items = items[:10]
+		self.group["items"] = self.shuffled_items[:5]
+
+		if self.alg in ("s1",):
+			self.group["items"].sort()
+			self.group["vals"] = [ITEMS[x]["val"] for x in self.group["items"]]
+			self.group["vals"].sort()
+			self.group["cats"] = [ITEMS[x]["cat"] for x in self.group["items"]]
+			self.group["cats"].sort()
+			self.group["d_vals"] =  [x - self.group["vals"][i - 1] for i, x in enumerate(self.group["vals"])][1:]
+			self.group["d_cats"] =  [x - self.group["cats"][i - 1] for i, x in enumerate(self.group["cats"])][1:]
+
+		print("Initial Group", [ x[2:] for x in self.group["items"]])
+
+		self.balance -= self.cost
 
 	def update(self):
 		if self.keep in QUIT:
@@ -201,7 +408,7 @@ class MLProject4(object):
 		self.group["d_vals"] =  [x - self.group["vals"][i - 1] for i, x in enumerate(self.group["vals"])][1:]
 		self.group["d_cats"] =  [x - self.group["cats"][i - 1] for i, x in enumerate(self.group["cats"])][1:]
 
-		print("Updated Group", self.group["items"])
+		print("Updated Group", [ x[2:] for x in self.group["items"]])
 		
 		if self.debug:
 			print("Values", self.group["vals"])
